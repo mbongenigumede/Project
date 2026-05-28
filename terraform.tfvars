@@ -1,0 +1,6 @@
+aws_region          = "us-east-1"
+instance_type       = "t3.micro"
+availability_zone   = "us-east-1a"
+allowed_ssh_ip      = "41.122.9.19/32"
+vpc_cidr            = "10.0.0.0/24"
+public_subnet_cidr  = "10.0.0.0/24"
