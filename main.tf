@@ -83,7 +83,7 @@ resource "aws_security_group" "web_sg" {
   vpc_id      = aws_vpc.main_vpc.id
 
   ingress {
-    description = "SSH — restricted to operator IP"
+    description = "SSH restricted to operator IP"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -91,7 +91,7 @@ resource "aws_security_group" "web_sg" {
   }
 
   ingress {
-    description = "Hello World app — open to internet"
+    description = "Hello World app open to internet"
     from_port   = 8808
     to_port     = 8808
     protocol    = "tcp"
