@@ -1,3 +1,14 @@
+locals {
+  common_tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Owner       = var.owner
+    CostCentre  = var.cost_centre
+    ManagedBy   = "Terraform"
+  }
+}
+
+
 data "aws_ami" "amazon_linux" {
   most_recent = true
   owners      = ["amazon"]
@@ -12,23 +23,27 @@ data "aws_ami" "amazon_linux" {
     values = ["hvm"]
   }
 }
+
+
 resource "aws_vpc" "main_vpc" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
 
-  tags = {
-    Name = "hello-world-vpc"
-  }
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-vpc"
+  })
 }
+
 
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main_vpc.id
 
-  tags = {
-    Name = "hello-world-igw"
-  }
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-igw"
+  })
 }
+
 
 resource "aws_subnet" "public_subnet" {
   vpc_id                  = aws_vpc.main_vpc.id
@@ -36,10 +51,12 @@ resource "aws_subnet" "public_subnet" {
   availability_zone       = var.availability_zone
   map_public_ip_on_launch = true
 
-  tags = {
-    Name = "hello-world-public-subnet"
-  }
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-public-subnet"
+    Tier = "Public"
+  })
 }
+
 
 resource "aws_route_table" "public_rt" {
   vpc_id = aws_vpc.main_vpc.id
@@ -49,9 +66,9 @@ resource "aws_route_table" "public_rt" {
     gateway_id = aws_internet_gateway.igw.id
   }
 
-  tags = {
-    Name = "hello-world-route-table"
-  }
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-public-rt"
+  })
 }
 
 resource "aws_route_table_association" "public_assoc" {
@@ -59,13 +76,14 @@ resource "aws_route_table_association" "public_assoc" {
   route_table_id = aws_route_table.public_rt.id
 }
 
+
 resource "aws_security_group" "web_sg" {
-  name        = "hello-world-sg"
-  description = "Allow SSH and App Traffic"
+  name        = "${var.project_name}-sg"
+  description = "Allow SSH from trusted IP and app traffic on port 8808"
   vpc_id      = aws_vpc.main_vpc.id
 
   ingress {
-    description = "Restricted SSH Access"
+    description = "SSH — restricted to operator IP"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -73,25 +91,28 @@ resource "aws_security_group" "web_sg" {
   }
 
   ingress {
-    description = "Application Access"
-
+    description = "Hello World app — open to internet"
     from_port   = 8808
     to_port     = 8808
     protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Egress must be 0.0.0.0/0 so the instance can reach
+  # yum repos and pip on the internet during userdata startup.
   egress {
+    description = "Allow all outbound traffic"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = [var.vpc_cidr]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Name = "hello-world-sg"
-  }
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-sg"
+  })
 }
+
 
 resource "aws_instance" "hello_server" {
   ami                         = data.aws_ami.amazon_linux.id
@@ -102,7 +123,13 @@ resource "aws_instance" "hello_server" {
 
   user_data = file("userdata.sh")
 
-  tags = {
-    Name = "hello-world-server"
+ 
+  lifecycle {
+    ignore_changes = [ami]
   }
+
+  tags = merge(local.common_tags, {
+    Name        = "${var.project_name}-server"
+    StopOnWeekend = "true"   # Useful hook for cost-saving automation (e.g. AWS Instance Scheduler)
+  })
 }

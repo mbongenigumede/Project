@@ -12,11 +12,13 @@ variable "allowed_ssh_ip" {
 variable "vpc_cidr" {
   description = "VPC CIDR Block"
   type        = string
+  default     = "10.0.0.0/24"
 }
 
 variable "public_subnet_cidr" {
   description = "Public Subnet CIDR"
   type        = string
+  default     = "10.0.0.0/28"
 }
 
 variable "availability_zone" {
@@ -35,4 +37,28 @@ variable "ami_id" {
   description = "Amazon Linux 2 AMI"
   type        = string
   default     = "ami-0c02fb55956c7d316"
+}
+
+variable "project_name" {
+  description = "Project name used for consistent resource naming and tagging"
+  type        = string
+  default     = "hello-world"
+}
+
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+  default     = "dev"
+}
+
+variable "owner" {
+  description = "Owner name or team — used in resource tags for billing and accountability"
+  type        = string
+  default     = "mbongeni-gumede"
+}
+
+variable "cost_centre" {
+  description = "Cost centre or billing code for AWS cost allocation tags"
+  type        = string
+  default     = "personal"
 }
